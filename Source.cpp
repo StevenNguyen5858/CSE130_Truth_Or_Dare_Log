@@ -17,6 +17,7 @@ int currentOptionsLen = NULL;
 // General function prototypes:
 bool navigate(int asc);
 void reprintPage();
+void rotateTurn();
 
 // Group2 ------------------------------------------------------------ Group2
 // Classes and Variables related to or for pages (displaying screen and options to press)
@@ -96,14 +97,14 @@ class page {
 public:
 	string name;
 	string prompt;
-	vector<displayBar> bars;
+	vector<displayBar*> bars;
 	vector<option> options;
 	//Default Constructor:
 	page() {
 	}
 
 	//Parameterized Constructor:
-	page(string name, string prompt, vector<displayBar> bars, vector<option> options) {
+	page(string name, string prompt, vector<displayBar*> bars, vector<option> options) {
 		this->name = name;
 		this->prompt = prompt;
 		this->bars = bars;
@@ -133,7 +134,7 @@ public:
 		cout << prompt << "\n\n";
 		cout << "----------------------------------------------------------------\n";
 		for (int i = 0; i < bars.size(); i++) {
-			bars[i].printBar();
+			(*bars[i]).printBar();
 		}
 		cout << "\n";
 		printOptions();
@@ -142,19 +143,31 @@ public:
 };
 
 // Options function/detail prototypes:
-void detailPlaylist();
 void detailTemp();
+void detailPlaylist();
+void detailAddTruth();
+void detailAddDare();
+void detailSetName();
 void functionTemp();
 void functionBegin();
 void functionNext();
 void functionAddPlayer();
 void functionFinished();
+void functionNew();
+void functionSetName();
+void functionAddTruth();
+void functionAddDare();
+void functionTruth();
+void functionDare();
+
 
 //-Page prompts:
 string beginPrompt = "Welcome to Truth or Dare! Use the arrows and enter to navigate.";
 string playlistPrompt = "Playlist Selector. Choose an existing playlist or create a new set.";
 string settingsPrompt = "Settings. Hit enter on an option to toggle.";
 string playPlayerInputPrompt = "Play - Character Input. Add players to the game.";
+string playlistCreatorPrompt = "Playlist Creator. Create a your own playlist.";
+string playTruthOrDarePrompt = "Would you like to answer a Truth, or face a Dare?";
 
 //-Page displayBars:
 vector<string> mainDisplayItems = { "Begin", "Play", "Playlist", "Settings" };
@@ -163,32 +176,53 @@ string mainDisplayPostString = "------------------------------------------------
 string playerDisplayPostString = "";
 
 displayBar mainBar = displayBar(&mainDisplayItems, mainDisplayPostString, 0, 8);
-vector<displayBar> mainBars = { mainBar };
+vector<displayBar*> mainBars = { &mainBar };
 displayBar playlistBar = displayBar(&mainDisplayItems, mainDisplayPostString, 2, 8);
-vector<displayBar> playlistBars = { playlistBar };
+vector<displayBar*> playlistBars = { &playlistBar };
 displayBar settingsBar = displayBar(&mainDisplayItems, mainDisplayPostString, 3, 8);
-vector<displayBar> settingsBars = { settingsBar };
+vector<displayBar*> settingsBars = { &settingsBar };
 displayBar playPlayerInputBar = displayBar(&mainDisplayItems, mainDisplayPostString, 1, 8);
 displayBar playPlayerInputBar2 = displayBar(&playerDisplayItems, playerDisplayPostString, 1, 1);
-vector<displayBar> playPlayerInputBars = { playPlayerInputBar, playPlayerInputBar2 };
-
+vector<displayBar*> playPlayerInputBars = { &playPlayerInputBar, &playPlayerInputBar2 };
+displayBar playTruthOrDareBar = displayBar(&mainDisplayItems, mainDisplayPostString, 1, 8);
+displayBar playTruthOrDareBar2 = displayBar(&playerDisplayItems, playerDisplayPostString, 1, 1);
+vector<displayBar*> playTruthOrDareBars = { &playTruthOrDareBar, &playTruthOrDareBar2 };
 
 //-Page options:
+option newO = option("New...", "playlistP", &functionNew, &detailTemp);    //New option "new"
+option setNameO = option("Set Name", "playlistCreatorP", &functionSetName, &detailSetName);
+option addTruthO = option("Add Truth", "playlistCreatorP", &functionAddTruth, &detailAddTruth);
+option addDareO = option("Add Dare", "playlistCreatorP", &functionAddDare, &detailAddDare);
+option createPlaylistO = option("Create Playlist", "playlistCreatorP", &functionBegin, &detailTemp);
+vector<option> playlistCreatorOptions = { setNameO, addTruthO, addDareO, createPlaylistO };
+
 option beginO = option("Begin", "beginP", &functionBegin, &detailTemp);
 vector<option> beginPageOptions = { beginO };
-vector<option> playlistPageOptions = { };
+vector<option> playlistPageOptions = { newO };
 option nextO = option("Next", "settingsP", &functionNext, &detailTemp);
 vector<option> settingsPageOptions = { nextO };
 option addPlayerO = option("Add Player", "playPlayerInputP", &functionAddPlayer, &detailTemp);
 option finishedO = option("Finished", "playPlayerInputP", &functionFinished, &detailTemp);
 vector<option> playPlayerInputOptions = { addPlayerO, finishedO };
+option truthO = option("Truth", "playTruthOrDareP", &functionTruth, &detailTemp);
+option dareO = option("Dare", "playTruthOrDareP", &functionDare, &detailTemp);
+vector<option> playTruthOrDareOptions = { truthO, dareO };
 
 //Pages:
+page playlistCreatorP = page("playlistCreatorP", playlistCreatorPrompt, playlistBars, playlistCreatorOptions);
+
 page beginP = page("beginP", beginPrompt, mainBars, beginPageOptions);
 page playlistP = page("playlistP", playlistPrompt, playlistBars, playlistPageOptions);
 page settingsP = page("settingsP", settingsPrompt, settingsBars, settingsPageOptions);
 page playPlayerInputP = page("playPlayerInputP", playPlayerInputPrompt, playPlayerInputBars, playPlayerInputOptions);
-vector<page*> pages = { &beginP, &playlistP, &settingsP, &playPlayerInputP };
+page playTruthOrDareP = page("playTruthOrDareP", playTruthOrDarePrompt, playTruthOrDareBars, playTruthOrDareOptions);
+vector<page*> pages = { &beginP, &playlistP, &settingsP, &playPlayerInputP, &playlistCreatorP, &playTruthOrDareP };
+
+// Global Variables
+int* pIndex = &playTruthOrDareBar2.displayIndex;
+string playerInput;
+string groupInput;
+
 
 // Group3 ------------------------------------------------------------ Group3
 // Class and Variables for playlist (sets of truths and dares)
@@ -239,16 +273,58 @@ vector<playlist> playlists = { playlist1, playlist2 };
 // Group4 ------------------------------------------------------------ Group4
 // Class and Variables for player
 class gameLog {
-	//Access specifier:
+	// Access specifier:
 public:
-	string playedPlaylist;
 	vector<string> log;
-	//Default Constructor:
+	vector<vector<string>> playerLogs;
+	vector<string> playerNames;
+	bool inOrder;
+	bool printFullTruths;
+
+	// Default Constructor:
 	gameLog() {
 	}
-	gameLog(string playedPlaylist) {
-		this->playedPlaylist = playedPlaylist;
+	gameLog(bool inOrder, bool printFullTruths) {
+		this->inOrder = inOrder;
+		
 	}
+
+	// Methods:
+	void space() {
+		log.push_back("");
+	}
+	void line() {
+		log.push_back("-----------------------------------------------------------------------------------------------");
+	}
+	void writePlaylist(playlist p) {
+		line();
+		log.push_back("Playlist name: " + p.name);
+		space();
+		log.push_back("Truths: ");
+		for (int i = 0; i < p.truths.size(); i++) {
+			log.push_back("-" + p.truths[i]);
+		}
+		space();
+		log.push_back("Dares: ");
+		for (int i = 0; i < p.dares.size(); i++) {
+			log.push_back("-" + p.dares[i]);
+		}
+		line();
+	}
+	void writeLog(string playerName, string challengeType, string truthOrDare, string playerInput, string groupInput) {
+		if (inOrder) {
+			space();
+			log.push_back("PlayerName: " + playerName);
+			log.push_back(challengeType + ": " + truthOrDare);
+			space();
+			log.push_back(playerName + "'s respponse: " + playerInput);
+			log.push_back("The group decided: ");
+			space();
+			line();
+		}
+	}
+
+
 
 };
 
@@ -278,6 +354,7 @@ public:
 void activatePage(page p);
 
 int main() {
+	srand(time(NULL));
 	activatePage(beginP);
 
 	while (listenKeys) {
@@ -324,6 +401,16 @@ void activatePage(page p) {
 	}
 	p.printPage();
 }
+void rotateTurn() {
+	if (*pIndex < playerDisplayItems.size() - 1) {
+		*pIndex = *pIndex + 1;
+	}
+	else {
+		*pIndex = 1;
+	}
+	reprintPage();
+}
+
 // Option details
 void detailTemp() {
 	cout << "";
@@ -340,6 +427,29 @@ void detailPlaylist() {
 		cout << "  -" << dare << "\n";
 	}
 	cout << "\n";
+}
+void detailAddTruth() {
+	if (playlists[playlists.size() - 1].truths.size() > 0) {
+		cout << "  Truths:\n";
+		for (int i = 0; i < playlists[playlists.size() - 1].truths.size(); i++) {
+			string truth = playlists[playlists.size() - 1].truths[i];
+			cout << "  -" << truth << "\n";
+		}
+	}
+}
+void detailAddDare() {
+	if (playlists[playlists.size() - 1].dares.size() > 0) {
+		cout << "  Dare:\n";
+		for (int i = 0; i < playlists[playlists.size() - 1].dares.size(); i++) {
+			string dare = playlists[playlists.size() - 1].dares[i];
+			cout << "  -" << dare << "\n";
+		}
+	}
+}
+void detailSetName() {
+	if (playlists[playlists.size() - 1].name.length() > 0) {
+		cout << "  Playlist Name: " << playlists[playlists.size() - 1].name << endl;
+	}
 }
 // Option Functions
 void functionTemp() {
@@ -359,6 +469,7 @@ void functionBegin() {
 		playlistP.options[i].function = &functionPlaylistN;
 		playlistP.options[i].detail = &detailPlaylist;
 	}
+	playlistP.options.push_back(newO);
 	activatePage(playlistP);
 }
 void functionNext() {
@@ -372,8 +483,47 @@ void functionAddPlayer() {
 	reprintPage();
 }
 void functionFinished() {
-	
+	activatePage(playTruthOrDareP);
 }
+void functionNew() {
+	playlists.push_back(playlist());
+	activatePage(playlistCreatorP);
 
+}
+void functionSetName() {
+	string tempSetName;
+	cout << "\nEnter playlist name: ";
+	cin >> tempSetName;
+	playlists[playlists.size() - 1].name = tempSetName;
+	reprintPage();
 
+}
+void functionAddDare() {
+	string tempAddDare;
+	cout << "\nEnter dare: ";
+	cin >> tempAddDare;
+	playlists[playlists.size() - 1].dares.push_back(tempAddDare);
+	reprintPage();
+}
+void functionAddTruth() {
+	string tempTruth;
+	cout << "\nEnter Truth: ";
+	cin >> tempTruth;
+	playlists[playlists.size() - 1].truths.push_back(tempTruth);
+	reprintPage();
+}
+void functionTruth() {
+	int tIndex = rand() % gamePlaylist->truths.size();
+	cout << "\nTruth: " << gamePlaylist->truths[tIndex] << endl;
+	cout << "The rest of the group, vote now: did " << playerDisplayItems[*pIndex] << " answer truthfully?" << endl;
+	cin >> groupInput;
+	rotateTurn();
+}
+void functionDare() {
+	int dIndex = rand() % gamePlaylist->dares.size();
+	cout << "\nTruth: " << gamePlaylist->dares[dIndex] << endl;
+	cout << "The rest of the group, vote now: how did " << playerDisplayItems[*pIndex] << " perform?" << endl;
+	cin >> groupInput;
+	rotateTurn();
+}
 
