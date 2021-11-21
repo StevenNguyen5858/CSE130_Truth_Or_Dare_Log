@@ -64,7 +64,8 @@ public:
 	}
 
 	//Parameterized Constructor:
-	displayBar(vector<string>* displayItems, int displayIndex, int space) {
+	displayBar(string name, vector<string>* displayItems, int displayIndex, int space) {
+		this->name = name;
 		this->displayItems = displayItems;
 		this->displayIndex = displayIndex;
 		this->space = space;
@@ -95,6 +96,13 @@ public:
 	}
 
 };
+//-Page displayBars:
+vector<string> mainDisplayItems = { "Begin", "Play", "Playlist", "Settings" };
+vector<string> playerDisplayItems = { "Players:" };
+
+displayBar mainBar = displayBar("mainDisplayBar", &mainDisplayItems, 0, 8);
+displayBar playersBar = displayBar("playersDisplayBar", &playerDisplayItems, 1, 1);
+vector<displayBar*> globalBars = { &mainBar, &playersBar };
 
 class option : public visualElement {
 	//Access specifier:
@@ -177,12 +185,12 @@ public:
 	}
 
 	//Parameterized Constructor:
-	page(string name, vector<visualElement*> elements, vector<displayBar*> bars) {
+	page(string name, vector<visualElement*> elements) {
 		this->name = name;
 		this->elements = elements;
 		this->bars = bars;
 		this->options = options;
-		//Compare elements list and global options list, options.pushBack named options from elements list.
+		//Compare elements list vs global options and display bars. .push_back to the respective list.
 		for (int i = 0; i < elements.size(); i++) {
 			if (elements[i]->elementType == "option") {
 				for (int x = 0; x < globalOptions.size(); x++) {
@@ -190,6 +198,13 @@ public:
 						if (elements[i]->name == globalOptions[x][y]->name && elements[i]->pageName == globalOptions[x][y]->pageName) {
 							options.push_back(globalOptions[x][y]);
 						}
+					}
+				}
+			}
+			if (elements[i]->elementType == "displayBar") {
+				for (int x = 0; x < globalBars.size(); x++) {
+					if (elements[i]->name == globalBars[x]->name) {
+						bars.push_back(globalBars[x]);
 					}
 				}
 			}
@@ -222,9 +237,6 @@ public:
 	}
 };
 
-
-
-
 //-Page prompts:
 lineStr ____space("");
 lineStr ____line("----------------------------------------------------------------");
@@ -235,19 +247,6 @@ lineStr str_playerInputPrompt("Play - Character Input. Add players to the game."
 lineStr str_playlistCreatorPrompt("Playlist Creator. Create a your own playlist.");
 lineStr str_playPagePrompt("Would you like to answer a Truth, or face a Dare?");
 
-//-Page displayBars:
-vector<string> mainDisplayItems = { "Begin", "Play", "Playlist", "Settings" };
-vector<string> playerDisplayItems = { "Players:" };
-
-displayBar mainBar = displayBar(&mainDisplayItems, 0, 8);
-
-vector<displayBar*> mainBars = { &mainBar };
-vector<displayBar*> playlistBars = { &mainBar };
-vector<displayBar*> settingsBars = { &mainBar };
-
-displayBar playersBar = displayBar(&playerDisplayItems, 1, 1);
-vector<displayBar*> playPlayerInputBars = { &mainBar, &playersBar };
-vector<displayBar*> playTruthOrDareBars = { &mainBar, &playersBar };
 
 //Pages:
 vector<visualElement*> mainElements = { 
@@ -259,7 +258,7 @@ vector<visualElement*> mainElements = {
 	&____space,
 	&option_begin
 };
-page mainP = page("beginP", mainElements, mainBars);
+page mainP = page("beginP", mainElements);
 vector<visualElement*> playlistElements = {
 	&str_playlistPrompt,
 	& ____space,
@@ -268,11 +267,11 @@ vector<visualElement*> playlistElements = {
 	& ____line,
 	& ____space,
 };
-page playlistP = page("playlistP", playlistElements, playlistBars);
-page playlistCreatorP = page("playlistCreatorP", { }, playlistBars);
-page settingsP = page("settingsP", { }, settingsBars);
-page playPlayerInputP = page("playPlayerInputP", { }, playPlayerInputBars);
-page playTruthOrDareP = page("playTruthOrDareP", { }, playTruthOrDareBars);
+page playlistP = page("playlistP", playlistElements);
+page playlistCreatorP = page("playlistCreatorP", { });
+page settingsP = page("settingsP", { });
+page playPlayerInputP = page("playPlayerInputP", { });
+page playTruthOrDareP = page("playTruthOrDareP", { });
 vector<page*> pages = { &mainP, &playlistP, &settingsP, &playPlayerInputP, &playlistCreatorP, &playTruthOrDareP };
 
 // Global Variables
@@ -456,6 +455,7 @@ void activatePage(page p) {
 			break;
 		}
 	}
+	currentOptionIndex = 0;
 	p.printPage();
 }
 void rotateTurn() {
