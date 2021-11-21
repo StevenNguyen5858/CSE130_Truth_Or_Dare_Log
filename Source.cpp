@@ -240,17 +240,14 @@ vector<string> mainDisplayItems = { "Begin", "Play", "Playlist", "Settings" };
 vector<string> playerDisplayItems = { "Players:" };
 
 displayBar mainBar = displayBar(&mainDisplayItems, 0, 8);
+
 vector<displayBar*> mainBars = { &mainBar };
-displayBar playlistBar = displayBar(&mainDisplayItems, 2, 8);
-vector<displayBar*> playlistBars = { &playlistBar };
-displayBar settingsBar = displayBar(&mainDisplayItems, 3, 8);
-vector<displayBar*> settingsBars = { &settingsBar };
-displayBar playPlayerInputBar = displayBar(&mainDisplayItems, 1, 8);
-displayBar playPlayerInputBar2 = displayBar(&playerDisplayItems, 1, 1);
-vector<displayBar*> playPlayerInputBars = { &playPlayerInputBar, &playPlayerInputBar2 };
-displayBar playTruthOrDareBar = displayBar(&mainDisplayItems, 1, 8);
-displayBar playTruthOrDareBar2 = displayBar(&playerDisplayItems, 1, 1);
-vector<displayBar*> playTruthOrDareBars = { &playTruthOrDareBar, &playTruthOrDareBar2 };
+vector<displayBar*> playlistBars = { &mainBar };
+vector<displayBar*> settingsBars = { &mainBar };
+
+displayBar playersBar = displayBar(&playerDisplayItems, 1, 1);
+vector<displayBar*> playPlayerInputBars = { &mainBar, &playersBar };
+vector<displayBar*> playTruthOrDareBars = { &mainBar, &playersBar };
 
 //Pages:
 vector<visualElement*> mainElements = { 
@@ -263,7 +260,15 @@ vector<visualElement*> mainElements = {
 	&option_begin
 };
 page mainP = page("beginP", mainElements, mainBars);
-page playlistP = page("playlistP", { }, playlistBars);
+vector<visualElement*> playlistElements = {
+	&str_playlistPrompt,
+	& ____space,
+	& ____line,
+	& mainBar,
+	& ____line,
+	& ____space,
+};
+page playlistP = page("playlistP", playlistElements, playlistBars);
 page playlistCreatorP = page("playlistCreatorP", { }, playlistBars);
 page settingsP = page("settingsP", { }, settingsBars);
 page playPlayerInputP = page("playPlayerInputP", { }, playPlayerInputBars);
@@ -271,7 +276,7 @@ page playTruthOrDareP = page("playTruthOrDareP", { }, playTruthOrDareBars);
 vector<page*> pages = { &mainP, &playlistP, &settingsP, &playPlayerInputP, &playlistCreatorP, &playTruthOrDareP };
 
 // Global Variables
-int* pIndex = &playTruthOrDareBar2.displayIndex;
+int* pIndex = &playersBar.displayIndex;
 string playerInput;
 string groupInput;
 
@@ -513,6 +518,7 @@ void functionPlaylistN() {
 	activatePage(settingsP);
 }
 void functionBegin() {
+	mainBar.displayIndex = 2;
 	//playlistP.options.clear();
 	//for (int i = 0; i < playlists.size(); i++) {
 	//	playlistP.options.push_back(option());
