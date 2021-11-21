@@ -21,11 +21,41 @@ void rotateTurn();
 
 // Group2 ------------------------------------------------------------ Group2
 // Classes and Variables related to or for pages (displaying screen and options to press)
-class displayBar {
+class visualElement {
+	//Access specifier:
+public:
+	string elementType = "visualElement";
+	string name;
+	string pageName;
+	virtual void printElement() {
+		cout << "Print base element." << endl;
+	}
+};
+
+class lineStr : public visualElement {
+	//Access specifier:
+public:
+	string str;
+
+	//Default Constructor:
+	lineStr() {
+	}
+	//Parameterized Constructor:
+	lineStr(string str) {
+		this->str = str;
+		this->elementType = "lineStr";
+	}
+
+	//Methods:
+	void printElement() {
+		cout << str << endl;
+	}
+};
+
+class displayBar : public visualElement {
 	//Access specifier:
 public:
 	vector<string>* displayItems;
-	string postString;
 	int displayIndex = 0;
 	int space;
 
@@ -34,15 +64,15 @@ public:
 	}
 
 	//Parameterized Constructor:
-	displayBar(vector<string>* displayItems, string postString, int displayIndex, int space) {
+	displayBar(vector<string>* displayItems, int displayIndex, int space) {
 		this->displayItems = displayItems;
-		this->postString = postString;
 		this->displayIndex = displayIndex;
 		this->space = space;
+		this->elementType = "displayBar";
 	}
 
 	//Methods:
-	void printBar() {
+	void printElement() {
 		string prefix = " ";
 		string suffix = " ";
 		for (int i = 0; i < (*displayItems).size(); i++) {
@@ -61,16 +91,16 @@ public:
 
 			cout << tempStr;
 		}
-		cout << "\n" << postString << "\n";
+		cout << endl;
 	}
 
 };
 
-class option {
+class option : public visualElement {
 	//Access specifier:
 public:
-	string name;
-	string pageName;
+	string prefix = " ";
+	bool isSelected = false;
 	void (*function)();
 	void (*detail)();
 	//Default Constructor:
@@ -83,65 +113,19 @@ public:
 		this->pageName = pageName;
 		this->function = function;
 		this->detail = detail;
+		this->elementType = "option";
 	}
 
 	//Methods
-	void printOption(string prefix) {
+	void printElement() {
 		cout << prefix << name << "\n";
+		if (isSelected) {
+			detail();
+			isSelected = false;
+		}
 	}
 
 };
-
-class page {
-	//Access specifier:
-public:
-	string name;
-	string prompt;
-	vector<displayBar*> bars;
-	vector<option> options;
-	//Default Constructor:
-	page() {
-	}
-
-	//Parameterized Constructor:
-	page(string name, string prompt, vector<displayBar*> bars, vector<option> options) {
-		this->name = name;
-		this->prompt = prompt;
-		this->bars = bars;
-		this->options = options;
-	}
-
-	//Methods:
-	void printOptions() {
-		string prefix = " ";
-		for (int i = 0; i < options.size(); i++) {
-			if (i == currentOptionIndex) {
-				prefix = ">";
-			}
-			else {
-				prefix = " ";
-			}
-			options[i].printOption(prefix);
-			if (i == currentOptionIndex) {
-				options[i].detail();
-			}
-		}
-
-	}
-
-	void printPage() {
-		system("CLS");
-		cout << prompt << "\n\n";
-		cout << "----------------------------------------------------------------\n";
-		for (int i = 0; i < bars.size(); i++) {
-			(*bars[i]).printBar();
-		}
-		cout << "\n";
-		printOptions();
-
-	}
-};
-
 // Options function/detail prototypes:
 void detailTemp();
 void detailPlaylist();
@@ -160,63 +144,131 @@ void functionAddDare();
 void functionTruth();
 void functionDare();
 
-
-//-Page prompts:
-string beginPrompt = "Welcome to Truth or Dare! Use the arrows and enter to navigate.";
-string playlistPrompt = "Playlist Selector. Choose an existing playlist or create a new set.";
-string settingsPrompt = "Settings. Hit enter on an option to toggle.";
-string playPlayerInputPrompt = "Play - Character Input. Add players to the game.";
-string playlistCreatorPrompt = "Playlist Creator. Create a your own playlist.";
-string playTruthOrDarePrompt = "Would you like to answer a Truth, or face a Dare?";
-
-//-Page displayBars:
-vector<string> mainDisplayItems = { "Begin", "Play", "Playlist", "Settings" };
-vector<string> playerDisplayItems = { "Players:" };
-string mainDisplayPostString = "----------------------------------------------------------------";
-string playerDisplayPostString = "";
-
-displayBar mainBar = displayBar(&mainDisplayItems, mainDisplayPostString, 0, 8);
-vector<displayBar*> mainBars = { &mainBar };
-displayBar playlistBar = displayBar(&mainDisplayItems, mainDisplayPostString, 2, 8);
-vector<displayBar*> playlistBars = { &playlistBar };
-displayBar settingsBar = displayBar(&mainDisplayItems, mainDisplayPostString, 3, 8);
-vector<displayBar*> settingsBars = { &settingsBar };
-displayBar playPlayerInputBar = displayBar(&mainDisplayItems, mainDisplayPostString, 1, 8);
-displayBar playPlayerInputBar2 = displayBar(&playerDisplayItems, playerDisplayPostString, 1, 1);
-vector<displayBar*> playPlayerInputBars = { &playPlayerInputBar, &playPlayerInputBar2 };
-displayBar playTruthOrDareBar = displayBar(&mainDisplayItems, mainDisplayPostString, 1, 8);
-displayBar playTruthOrDareBar2 = displayBar(&playerDisplayItems, playerDisplayPostString, 1, 1);
-vector<displayBar*> playTruthOrDareBars = { &playTruthOrDareBar, &playTruthOrDareBar2 };
-
 //-Page options:
 option newO = option("New...", "playlistP", &functionNew, &detailTemp);    //New option "new"
 option setNameO = option("Set Name", "playlistCreatorP", &functionSetName, &detailSetName);
 option addTruthO = option("Add Truth", "playlistCreatorP", &functionAddTruth, &detailAddTruth);
 option addDareO = option("Add Dare", "playlistCreatorP", &functionAddDare, &detailAddDare);
 option createPlaylistO = option("Create Playlist", "playlistCreatorP", &functionBegin, &detailTemp);
-vector<option> playlistCreatorOptions = { setNameO, addTruthO, addDareO, createPlaylistO };
+vector<option*> options_playlistCreator = { &setNameO, &addTruthO, &addDareO, &createPlaylistO };
 
-option beginO = option("Begin", "beginP", &functionBegin, &detailTemp);
-vector<option> beginPageOptions = { beginO };
-vector<option> playlistPageOptions = { newO };
+option option_begin = option("Begin", "beginP", &functionBegin, &detailTemp);
+vector<option*> options_mainPage = { &option_begin };
+vector<option*> options_playlistPage = { &newO };
 option nextO = option("Next", "settingsP", &functionNext, &detailTemp);
-vector<option> settingsPageOptions = { nextO };
+vector<option*> options_settingsPage = { &nextO };
 option addPlayerO = option("Add Player", "playPlayerInputP", &functionAddPlayer, &detailTemp);
 option finishedO = option("Finished", "playPlayerInputP", &functionFinished, &detailTemp);
-vector<option> playPlayerInputOptions = { addPlayerO, finishedO };
+vector<option*> options_playerInputPage = { &addPlayerO, &finishedO };
 option truthO = option("Truth", "playTruthOrDareP", &functionTruth, &detailTemp);
 option dareO = option("Dare", "playTruthOrDareP", &functionDare, &detailTemp);
-vector<option> playTruthOrDareOptions = { truthO, dareO };
+vector<option*> options_playPage = { &truthO, &dareO };
+vector<vector<option*>> globalOptions = { options_mainPage, options_playlistCreator, options_playlistPage, options_settingsPage, options_playerInputPage, options_playPage };
+
+class page {
+	//Access specifier:
+public:
+	string name;
+	vector<visualElement*> elements;
+	vector<displayBar*> bars;
+	vector<option*> options;
+	//Default Constructor:
+	page() {
+	}
+
+	//Parameterized Constructor:
+	page(string name, vector<visualElement*> elements, vector<displayBar*> bars) {
+		this->name = name;
+		this->elements = elements;
+		this->bars = bars;
+		this->options = options;
+		//Compare elements list and global options list, options.pushBack named options from elements list.
+		for (int i = 0; i < elements.size(); i++) {
+			if (elements[i]->elementType == "option") {
+				for (int x = 0; x < globalOptions.size(); x++) {
+					for (int y = 0; y < globalOptions[x].size(); y++) {
+						if (elements[i]->name == globalOptions[x][y]->name && elements[i]->pageName == globalOptions[x][y]->pageName) {
+							options.push_back(globalOptions[x][y]);
+						}
+					}
+				}
+			}
+		}
+	}
+
+	//Methods:
+
+	//Assign prefix for options as an indicator for user selection.
+	void assignPrefixes() {
+		int optionIndex = 0;
+		for (int i = 0; i < elements.size(); i++) {
+			if (elements[i]->elementType == "option") {
+				if (optionIndex == currentOptionIndex) {
+					options[optionIndex]->prefix = ">";
+				}
+				else {
+					options[optionIndex]->prefix = ":";
+				}
+				optionIndex++;
+			}
+		}
+	}
+	void printPage() {
+		system("CLS");
+		assignPrefixes();
+		for (int i = 0; i < elements.size(); i++) {
+			elements[i]->printElement();
+		}
+	}
+};
+
+
+
+
+//-Page prompts:
+lineStr ____space("");
+lineStr ____line("----------------------------------------------------------------");
+lineStr str_mainPrompt("Welcome to Truth or Dare! Use the arrows and enter to navigate.");
+lineStr str_playlistPrompt("Playlist Selector. Choose an existing playlist or create a new set.");
+lineStr str_settingsPrompt("Settings. Hit enter on an option to toggle.");
+lineStr str_playerInputPrompt("Play - Character Input. Add players to the game.");
+lineStr str_playlistCreatorPrompt("Playlist Creator. Create a your own playlist.");
+lineStr str_playPagePrompt("Would you like to answer a Truth, or face a Dare?");
+
+//-Page displayBars:
+vector<string> mainDisplayItems = { "Begin", "Play", "Playlist", "Settings" };
+vector<string> playerDisplayItems = { "Players:" };
+
+displayBar mainBar = displayBar(&mainDisplayItems, 0, 8);
+vector<displayBar*> mainBars = { &mainBar };
+displayBar playlistBar = displayBar(&mainDisplayItems, 2, 8);
+vector<displayBar*> playlistBars = { &playlistBar };
+displayBar settingsBar = displayBar(&mainDisplayItems, 3, 8);
+vector<displayBar*> settingsBars = { &settingsBar };
+displayBar playPlayerInputBar = displayBar(&mainDisplayItems, 1, 8);
+displayBar playPlayerInputBar2 = displayBar(&playerDisplayItems, 1, 1);
+vector<displayBar*> playPlayerInputBars = { &playPlayerInputBar, &playPlayerInputBar2 };
+displayBar playTruthOrDareBar = displayBar(&mainDisplayItems, 1, 8);
+displayBar playTruthOrDareBar2 = displayBar(&playerDisplayItems, 1, 1);
+vector<displayBar*> playTruthOrDareBars = { &playTruthOrDareBar, &playTruthOrDareBar2 };
 
 //Pages:
-page playlistCreatorP = page("playlistCreatorP", playlistCreatorPrompt, playlistBars, playlistCreatorOptions);
-
-page beginP = page("beginP", beginPrompt, mainBars, beginPageOptions);
-page playlistP = page("playlistP", playlistPrompt, playlistBars, playlistPageOptions);
-page settingsP = page("settingsP", settingsPrompt, settingsBars, settingsPageOptions);
-page playPlayerInputP = page("playPlayerInputP", playPlayerInputPrompt, playPlayerInputBars, playPlayerInputOptions);
-page playTruthOrDareP = page("playTruthOrDareP", playTruthOrDarePrompt, playTruthOrDareBars, playTruthOrDareOptions);
-vector<page*> pages = { &beginP, &playlistP, &settingsP, &playPlayerInputP, &playlistCreatorP, &playTruthOrDareP };
+vector<visualElement*> mainElements = { 
+	&str_mainPrompt, 
+	&____space,
+	&____line,
+	&mainBar,
+	&____line,
+	&____space,
+	&option_begin
+};
+page mainP = page("beginP", mainElements, mainBars);
+page playlistP = page("playlistP", { }, playlistBars);
+page playlistCreatorP = page("playlistCreatorP", { }, playlistBars);
+page settingsP = page("settingsP", { }, settingsBars);
+page playPlayerInputP = page("playPlayerInputP", { }, playPlayerInputBars);
+page playTruthOrDareP = page("playTruthOrDareP", { }, playTruthOrDareBars);
+vector<page*> pages = { &mainP, &playlistP, &settingsP, &playPlayerInputP, &playlistCreatorP, &playTruthOrDareP };
 
 // Global Variables
 int* pIndex = &playTruthOrDareBar2.displayIndex;
@@ -286,7 +338,7 @@ public:
 	}
 	gameLog(bool inOrder, bool printFullTruths) {
 		this->inOrder = inOrder;
-		
+
 	}
 
 	// Methods:
@@ -355,7 +407,7 @@ void activatePage(page p);
 
 int main() {
 	srand(time(NULL));
-	activatePage(beginP);
+	activatePage(mainP);
 
 	while (listenKeys) {
 		char c = _getch();
@@ -367,7 +419,7 @@ int main() {
 		if (ascii == 13) {
 			//When enter is pressed, run the function of the currentOption.
 			page currentPage = *pages[currentPageIndex];
-			option currentOption = currentPage.options[currentOptionIndex];
+			option currentOption = *currentPage.options[currentOptionIndex];
 			currentOption.function();
 		}
 	}
@@ -461,15 +513,15 @@ void functionPlaylistN() {
 	activatePage(settingsP);
 }
 void functionBegin() {
-	playlistP.options.clear();
-	for (int i = 0; i < playlists.size(); i++) {
-		playlistP.options.push_back(option());
-		playlistP.options[i].name = playlists[i].name;
-		playlistP.options[i].pageName = "playlistP";
-		playlistP.options[i].function = &functionPlaylistN;
-		playlistP.options[i].detail = &detailPlaylist;
-	}
-	playlistP.options.push_back(newO);
+	//playlistP.options.clear();
+	//for (int i = 0; i < playlists.size(); i++) {
+	//	playlistP.options.push_back(option());
+	//	playlistP.options[i].name = playlists[i].name;
+	//	playlistP.options[i].pageName = "playlistP";
+	//	playlistP.options[i].function = &functionPlaylistN;
+	//	playlistP.options[i].detail = &detailPlaylist;
+	//}
+	//playlistP.options.push_back(newO);
 	activatePage(playlistP);
 }
 void functionNext() {
@@ -526,4 +578,3 @@ void functionDare() {
 	cin >> groupInput;
 	rotateTurn();
 }
-
