@@ -19,6 +19,7 @@ int currentOptionsLen = NULL;
 bool navigate(int asc);
 void reprintPage();
 void rotateTurn();
+void loadPresets();
 
 // Group2 ------------------------------------------------------------ Group2
 // Classes and Variables related to or for pages (displaying screen and options to press)
@@ -180,36 +181,68 @@ vector<option*> options_playPage = { &option_truth, &option_dare };
 vector<vector<option*>> globalOptions = { options_playlistPage, options_mainPage, options_playlistCreator, options_settingsPage, options_playerInputPage, options_playPage };
 
 class sideBar {
-	string cursorZeroZero = "\033[H";
-	vector<vector<string>*> columns = { &column1, &column2 };
 	//Access specifier:
 public:
 	vector<string> column1 = {};
 	vector<string> column2 = {};
-	
+	vector<vector<string>>(*update)();
+	vector<vector<string>*> columns = { &column1, &column2 };
 	
 	//Default constructor:
 	sideBar() {
 	}
 	//Parameterized constructor:
-	sideBar(vector<string> column1, vector<string> column2) {
-		this->column1 = column1;
-		this->column2 = column2;
+	sideBar(vector<vector<string>>(*update)()) {
+		this->update = update;
 	}
 
 	//Methods:
+	void updateBar() {
+		column1 = update()[0];
+		column2 = update()[1];
+		columns = { &column1, &column2 };
+	}
+	void lineAt(int x) {
+		for (int i = 0; i < 22; i++) {
+			if (i != 1) {
+				string cursorPos = "\033[H\033[" + to_string(i + 4) + ";" + to_string(x) + "H";
+				cout << cursorPos << "|";
+			}
+		}
+	}
 	void printSideBar() {
+		updateBar();
+		string columnX;
+		string cursorPos;
+		lineAt(85);
+		lineAt(117);
+		cursorPos = "\033[H\033[" + to_string(4) + ";87H";
+		cout << cursorPos << "Scoreboard";
 		for (int i = 0; i < 2; i++) {
-			for (int j = 0; j < columns[i]->size(); j++) {
-				string cursorPos = cursorZeroZero + "\033[" + to_string(j + 1) + ";30H";
+			if (i == 0) { 
+				columnX = ";87H";
+				cursorPos = "\033[H\033[" + to_string(6) + columnX;
+			} else { 
+				columnX = ";103H";
+				cursorPos = "\033[H\033[" + to_string(6) + columnX;
+			}
+			cout << cursorPos << "\u001b[0m\u001b[4m" + (*columns[i])[0] + "\u001b[0m";
+			for (int j = 1; j < columns[i]->size(); j++) {
+				cursorPos = "\033[H\033[" + to_string(j + 7) + columnX;
 				cout << cursorPos << (*columns[i])[j];
 			}
 		}
+		//Reset cursor location.
+		cout << "\033[H\033[;1H";
 	}
 
 };
 //-Page sideBars:
-sideBar noSideBar = sideBar();
+//sideBar update funcions
+vector<vector<string>> updatePlayers();
+
+sideBar sideBar_none = sideBar();
+sideBar sideBar_players = sideBar(&updatePlayers);
 
 class page {
 	//Access specifier:
@@ -217,6 +250,7 @@ public:
 	string name;
 	vector<visualElement*> elements;
 	sideBar sideBarE;
+	bool hasSideBar;
 
 	vector<visualElement*> postElements;
 	vector<displayBar*> bars;
@@ -224,14 +258,40 @@ public:
 	//Default Constructor:
 	page() {
 	}
-
 	//Parameterized Constructor:
+	page(string name, vector<visualElement*> elements) {
+		this->name = name;
+		this->elements = elements;
+		this->bars = bars;
+		this->options = options;
+		this->hasSideBar = false;
+		//Compare elements list vs global options and display bars. .push_back to the respective list.
+		for (int i = 0; i < elements.size(); i++) {
+			if (elements[i]->elementType == "option") {
+				for (int x = 0; x < globalOptions.size(); x++) {
+					for (int y = 0; y < globalOptions[x].size(); y++) {
+						if (elements[i]->name == globalOptions[x][y]->name && elements[i]->pageName == globalOptions[x][y]->pageName) {
+							options.push_back(globalOptions[x][y]);
+						}
+					}
+				}
+			}
+			if (elements[i]->elementType == "displayBar") {
+				for (int x = 0; x < globalBars.size(); x++) {
+					if (elements[i]->name == globalBars[x]->name) {
+						bars.push_back(globalBars[x]);
+					}
+				}
+			}
+		}
+	}
 	page(string name, vector<visualElement*> elements, sideBar sideBarE) {
 		this->name = name;
 		this->elements = elements;
 		this->bars = bars;
 		this->options = options;
 		this->sideBarE = sideBarE;
+		this->hasSideBar = true;
 		//Compare elements list vs global options and display bars. .push_back to the respective list.
 		for (int i = 0; i < elements.size(); i++) {
 			if (elements[i]->elementType == "option") {
@@ -283,19 +343,22 @@ public:
 	void printPage() {
 		system("CLS");
 		assignPrefixes();
+		if (hasSideBar) {
+			sideBarE.printSideBar();
+		}
 		for (int i = 0; i < elements.size(); i++) {
 			elements[i]->printElement();
 		}
 		for (int i = 0; i < postElements.size(); i++) {
 			postElements[i]->printElement();
 		}
-		sideBarE.printSideBar();
+		
 	}
 };
 
 //-Page prompts:
 lineStr ____space("");
-lineStr ____line("--------------------------------------------------------------------                ----------------------------------");
+lineStr ____line("--------------------------------------------------------------------                 -------------------------------");
 lineStr str_mainPrompt("Welcome to Truth or Dare! Use the arrows and enter to navigate.");
 lineStr str_playlistPrompt("Playlist Selector. Choose an existing playlist or create a new set.");
 lineStr str_settingsPrompt("Settings. Hit enter on an option to toggle.");
@@ -313,7 +376,7 @@ vector<visualElement*> mainElements = {
 	& ____space,
 	& option_begin
 };
-page mainP = page("beginP", mainElements, noSideBar);
+page mainP = page("beginP", mainElements);
 
 vector<visualElement*> playlistElements = {
 	& str_playlistPrompt,
@@ -324,7 +387,7 @@ vector<visualElement*> playlistElements = {
 	& ____space,
 };
 
-page playlistP = page("playlistP", playlistElements, noSideBar);
+page playlistP = page("playlistP", playlistElements);
 
 vector<visualElement*> playlistCreatorElements = {
 	& str_playlistCreatorPrompt,
@@ -338,7 +401,7 @@ vector<visualElement*> playlistCreatorElements = {
 	& option_addDare,
 	& option_createPlaylist
 };
-page playlistCreatorP = page("playlistCreatorP", playlistCreatorElements, noSideBar);
+page playlistCreatorP = page("playlistCreatorP", playlistCreatorElements);
 
 vector<visualElement*> settingsElements = {
 	& str_settingsPrompt,
@@ -349,7 +412,7 @@ vector<visualElement*> settingsElements = {
 	& ____space,
 	& option_next
 };
-page settingsP = page("settingsP", settingsElements, noSideBar);
+page settingsP = page("settingsP", settingsElements);
 
 vector<visualElement*> playerInputElements = {
 	& str_playerInputPrompt,
@@ -361,7 +424,7 @@ vector<visualElement*> playerInputElements = {
 	& option_addPlayer,
 	& option_finished
 };
-page playerInputP = page("playPlayerInputP", playerInputElements, noSideBar);
+page playerInputP = page("playPlayerInputP", playerInputElements);
 
 vector<visualElement*> playElements = {
 	& str_playPagePrompt,
@@ -373,7 +436,7 @@ vector<visualElement*> playElements = {
 	& option_truth,
 	& option_dare
 };
-page playP = page("playTruthOrDareP", playElements, noSideBar);
+page playP = page("playTruthOrDareP", playElements, sideBar_players);
 vector<page*> pages = { &mainP, &playlistP, &settingsP, &playerInputP, &playlistCreatorP, &playP };
 
 // Global Variables
@@ -425,8 +488,6 @@ vector<string> dares1{
 //Playlist:
 playlist playlist1("Playlist1", truths1, dares1);
 playlist playlist2("Playlist2", truths1, dares1);
-playlist* gamePlaylist;
-vector<playlist> playlists = { playlist1, playlist2 };
 
 // Group4 ------------------------------------------------------------ Group4
 // Class and Variables for player
@@ -441,14 +502,10 @@ public:
 	player() {
 	}
 	//Parameterized Constructor:
-	player(string name, int points, int turnIndex) {
+	player(string name) {
 		this->name = name;
-		this->points = points;
-		this->turnIndex = turnIndex;
-
 	}
 	//Methods:
-
 };
 
 // Group5 ------------------------------------------------------------ Group5
@@ -476,9 +533,11 @@ class cache {
 	//Access specifier:
 public:
 	vector<player> players = {};
-	vector<option> options = {};
 	vector<playlist> playlists = {};
+	playlist* gamePlaylist;
+
 	vector<visualElement> elements = {};
+	vector<option> options = {};
 	//Default Constructor:
 	cache() {
 	}
@@ -492,6 +551,11 @@ void activatePage(page p);
 int main() {
 	srand(time(NULL));
 	activatePage(mainP);
+	bool runOnce = true;
+	if (runOnce) {
+		loadPresets();
+		runOnce = false;
+	}
 
 	while (listenKeys) {
 		char c = _getch();
@@ -547,6 +611,10 @@ void rotateTurn() {
 	}
 	reprintPage();
 }
+void loadPresets() {
+	cache1.playlists.push_back(playlist1);
+	cache1.playlists.push_back(playlist2);
+}
 
 // Option details
 void detailTemp() {
@@ -554,38 +622,38 @@ void detailTemp() {
 }
 void detailPlaylist() {
 	cout << "  Truths\n";
-	for (int i = 0; i < playlists[currentOptionIndex].truths.size(); i++) {
-		string truth = playlists[currentOptionIndex].truths[i];
+	for (int i = 0; i < cache1.playlists[currentOptionIndex].truths.size(); i++) {
+		string truth = cache1.playlists[currentOptionIndex].truths[i];
 		cout << "  -" << truth << "\n";
 	}
 	cout << "\n  Dares\n";
-	for (int i = 0; i < playlists[currentOptionIndex].dares.size(); i++) {
-		string dare = playlists[currentOptionIndex].dares[i];
+	for (int i = 0; i < cache1.playlists[currentOptionIndex].dares.size(); i++) {
+		string dare = cache1.playlists[currentOptionIndex].dares[i];
 		cout << "  -" << dare << "\n";
 	}
 	cout << "\n";
 }
 void detailAddTruth() {
-	if (playlists[playlists.size() - 1].truths.size() > 0) {
+	if (cache1.playlists[cache1.playlists.size() - 1].truths.size() > 0) {
 		cout << "  Truths:\n";
-		for (int i = 0; i < playlists[playlists.size() - 1].truths.size(); i++) {
-			string truth = playlists[playlists.size() - 1].truths[i];
+		for (int i = 0; i < cache1.playlists[cache1.playlists.size() - 1].truths.size(); i++) {
+			string truth = cache1.playlists[cache1.playlists.size() - 1].truths[i];
 			cout << "  -" << truth << "\n";
 		}
 	}
 }
 void detailAddDare() {
-	if (playlists[playlists.size() - 1].dares.size() > 0) {
+	if (cache1.playlists[cache1.playlists.size() - 1].dares.size() > 0) {
 		cout << "  Dare:\n";
-		for (int i = 0; i < playlists[playlists.size() - 1].dares.size(); i++) {
-			string dare = playlists[playlists.size() - 1].dares[i];
+		for (int i = 0; i < cache1.playlists[cache1.playlists.size() - 1].dares.size(); i++) {
+			string dare = cache1.playlists[cache1.playlists.size() - 1].dares[i];
 			cout << "  -" << dare << "\n";
 		}
 	}
 }
 void detailSetName() {
-	if (playlists[playlists.size() - 1].name.length() > 0) {
-		cout << "  Playlist Name: " << playlists[playlists.size() - 1].name << endl;
+	if (cache1.playlists[cache1.playlists.size() - 1].name.length() > 0) {
+		cout << "  Playlist Name: " << cache1.playlists[cache1.playlists.size() - 1].name << endl;
 	}
 }
 // Option Functions
@@ -594,16 +662,16 @@ void functionTemp() {
 }
 void functionPlaylistN() {
 	mainBar.displayIndex = 3;
-	gamePlaylist = &playlists[currentOptionIndex];
-	mainDisplayItems[2] = gamePlaylist->name;
+	cache1.gamePlaylist = &cache1.playlists[currentOptionIndex];
+	mainDisplayItems[2] = cache1.gamePlaylist->name;
 	activatePage(settingsP);
 }
 void functionBegin() {
 	mainBar.displayIndex = 2;
 	cache1.options.clear();
-	for (int i = 0; i < playlists.size(); i++) {
+	for (int i = 0; i < cache1.playlists.size(); i++) {
 		cache1.options.push_back(option());
-		cache1.options[i].name = playlists[i].name;
+		cache1.options[i].name = cache1.playlists[i].name;
 		cache1.options[i].pageName = "playlistP";
 		cache1.options[i].function = &functionPlaylistN;
 		cache1.options[i].detail = &detailPlaylist;
@@ -626,20 +694,21 @@ void functionAddPlayer() {
 	cout << "\nEnter player name: ";
 	cin >> tempName;
 	playerDisplayItems.push_back(tempName);
+	cache1.players.push_back(player(tempName));
 	reprintPage();
 }
 void functionFinished() {
 	activatePage(playP);
 }
 void functionNew() {
-	playlists.push_back(playlist());
+	cache1.playlists.push_back(playlist());
 	activatePage(playlistCreatorP);
 }
 void functionSetName() {
 	string tempSetName;
 	cout << "\nEnter playlist name: ";
 	cin >> tempSetName;
-	playlists[playlists.size() - 1].name = tempSetName;
+	cache1.playlists[cache1.playlists.size() - 1].name = tempSetName;
 	reprintPage();
 
 }
@@ -647,27 +716,42 @@ void functionAddDare() {
 	string tempAddDare;
 	cout << "\nEnter dare: ";
 	cin >> tempAddDare;
-	playlists[playlists.size() - 1].dares.push_back(tempAddDare);
+	cache1.playlists[cache1.playlists.size() - 1].dares.push_back(tempAddDare);
 	reprintPage();
 }
 void functionAddTruth() {
 	string tempTruth;
 	cout << "\nEnter Truth: ";
 	cin >> tempTruth;
-	playlists[playlists.size() - 1].truths.push_back(tempTruth);
+	cache1.playlists[cache1.playlists.size() - 1].truths.push_back(tempTruth);
 	reprintPage();
 }
 void functionTruth() {
-	int tIndex = rand() % gamePlaylist->truths.size();
-	cout << "\nTruth: " << gamePlaylist->truths[tIndex] << endl;
+	int tIndex = rand() % cache1.gamePlaylist->truths.size();
+	cout << "\nTruth: " << cache1.gamePlaylist->truths[tIndex] << endl;
 	cout << "The rest of the group, vote now: did " << playerDisplayItems[*pIndex] << " answer truthfully?" << endl;
 	cin >> groupInput;
 	rotateTurn();
 }
 void functionDare() {
-	int dIndex = rand() % gamePlaylist->dares.size();
-	cout << "\nTruth: " << gamePlaylist->dares[dIndex] << endl;
+	int dIndex = rand() % cache1.gamePlaylist->dares.size();
+	cout << "\nTruth: " << cache1.gamePlaylist->dares[dIndex] << endl;
 	cout << "The rest of the group, vote now: how did " << playerDisplayItems[*pIndex] << " perform?" << endl;
 	cin >> groupInput;
 	rotateTurn();
+}
+// SideBar update
+vector<vector<string>> updatePlayers() {
+	vector<string> tempColumn1;
+	vector<string> tempColumn2;
+	tempColumn1.push_back("Players ");
+	tempColumn2.push_back("Points  ");
+
+	for (int i = 0; i < cache1.players.size(); i++) {
+		tempColumn1.push_back( "" + cache1.players[i].name );
+		tempColumn2.push_back( "" + to_string(cache1.players[i].points) + " points");
+	}
+	
+	vector<vector<string>> columns = { tempColumn1, tempColumn2 };
+	return columns;
 }
