@@ -13,6 +13,9 @@ int currentOptionIndex = 0;
 int currentwindowIndex = 0;
 bool listenKeys = true;
 int currentOptionsLen = NULL;
+
+// Group1.1
+// Variables for text modification or cursor movement.
 string inputPos = "\033[H\033[25;4H";
 string hidePos = "\033[H\033[30;120H";
 string endPos = "\033[H\033[23;4H";
@@ -23,7 +26,7 @@ string underline = "\u001b[4m";
 string reversed = "\u001b[7m";
 string dead = "\u001b[31m";
 
-// Group1.1
+// Group1.2
 // General function prototypes:
 bool navigate(int asc);
 void reprintwindow();
@@ -32,7 +35,7 @@ void loadPresets();
 void lineAt(int x);
 void flatAt(int y);
 
-// Group4 ------------------------------------------------------------ Group4
+// Group2 ------------------------------------------------------------ Group2
 // Class and Variables for player
 
 class player {
@@ -62,24 +65,10 @@ public:
 
 	//Methods:
 	string fullName() {
-		//Black: \u001b[30m
-		//Red: \u001b[31m
-		//Green : \u001b[32m
-		//Yellow : \u001b[33m
-		//Blue : \u001b[34m
-		//Magenta : \u001b[35m
-		//Cyan : \u001b[36m
-		//White : \u001b[37m
-		//Reset : \u001b[0m
-		//if (isSelected) {
-			//\u001b[36m
-			//return "\u001b[7m" + color + name + "\u001b[0m";
-		//} 
 		if (isSelected) {
 			return name;
 		}
 		return name;
-		//return color + name + "\u001b[0m";
 	}
 };
 
@@ -128,7 +117,7 @@ playlist playlist1("Playlist1", truths1, dares1);
 playlist playlist2("Playlist2", truths1, dares1);
 
 // Group2 ------------------------------------------------------------ Group2
-// visualElement parent and it's child element classes (displaying screen and options to press)
+// VisualElement parent and it's child element classes (displaying screen and options to press)
 class visualElement {
 	//Access specifier:
 public:
@@ -170,16 +159,16 @@ public:
 };
 
 class displayBar : public visualElement {
-	//Access specifier:
+	// Access specifier:
 public:
 	vector<string>* displayItems;
 	int displayIndex = 0;
 	int space;
 
-	//Default Constructor:
+	// Default Constructor:
 	displayBar() {
 	}
-	//Parameterized Constructor:
+	// Parameterized Constructor:
 	displayBar(string name, vector<string>* displayItems, int displayIndex, int space) {
 		this->name = name;
 		this->displayItems = displayItems;
@@ -188,7 +177,7 @@ public:
 		this->elementType = "displayBar";
 		this->color = "\u001b[35m";
 	}
-	//Methods:
+	// Methods:
 	void printElement(string x) {
 		string prefix = " ";
 		string suffix = " ";
@@ -213,11 +202,10 @@ public:
 		}
 		cout << endl;
 	}
-
 };
 
 class option : public visualElement {
-	//Access specifier:
+	// Access specifier:
 public:
 	string prefix = " ";
 	bool isSelected = false;
@@ -228,7 +216,7 @@ public:
 		this->elementType = "option";
 		this->color = "\u001b[32m";
 	}
-	//Parameterized Constructor:
+	// Parameterized Constructor:
 	option(string name, string windowName, void (*function)(), void (*detail)()) {
 		this->name = name;
 		this->windowName = windowName;
@@ -238,7 +226,7 @@ public:
 		this->color = "\u001b[32m";
 	}
 
-	//Methods
+	// Methods
 	void printElement(string x) {
 		cout << bold << color << "\033[" + x + "C" << prefix << name << resetText << endl;
 		if (isSelected) {
@@ -246,12 +234,11 @@ public:
 			isSelected = false;
 		}
 	}
-
 };
 
 class cache {
 	// Cache stores players, playlist, and visualElement child objects.
-	//Access specifier:
+	// Access specifier:
 public:
 	vector<player> players = {};
 	vector<playlist> playlists = {};
@@ -267,22 +254,19 @@ public:
 cache cache1 = cache();
 
 class scoreboard : public visualElement {
-	//Access specifier:
+	// Access specifier:
 public:
 
-	//Default constructor:
+	// Default constructor:
 	scoreboard() {
 		this->color = "\u001b[36m";
 	}
 
-	//Methods:
+	// Methods:
 	void printElement(string x) {
 		string columnX;
 		cout << "\n\n\n";
-
-		//cout << bold << color << "\033[" + x + "C" << "Scoreboard\n\n" << resetText;
 		cout << bold << color << "\033[88C" << "Scoreboard\n\n" << resetText;
-		//\033[;1H"
 		cout << bold << color << "\033[88C" << underline << "Players" << resetText << endl;
 		cout << "\033[A";
 		cout << bold << color << "\033[104C" << underline << "Points" << resetText << "\n\n";
@@ -310,24 +294,23 @@ public:
 
 scoreboard scoreboard_points = scoreboard();
 
-
 class sideBar {
-	//Access specifier:
+	// Access specifier:
 public:
 	vector<string> column1 = {};
 	vector<string> column2 = {};
 	vector<vector<string>>(*update)();
 	vector<vector<string>*> columns = { &column1, &column2 };
-
-	//Default constructor:
+	 
+	// Default constructor:
 	sideBar() {
 	}
-	//Parameterized constructor:
+	// Parameterized constructor:
 	sideBar(vector<vector<string>>(*update)()) {
 		this->update = update;
 	}
 
-	//Methods:
+	// Methods:
 	void updateBar() {
 		column1 = update()[0];
 		column2 = update()[1];
@@ -358,7 +341,6 @@ public:
 			cout << "\033[" + to_string(columns[i]->size() - 1) + "A";
 		}
 	}
-
 };
 
 // Group2.1 ----------------------------------------------------------- Group2.1
@@ -431,7 +413,7 @@ sideBar sideBar_none = sideBar();
 sideBar sideBar_players = sideBar(&updatePlayers);
 
 class window {
-	//Access specifier:
+	// Access specifier:
 public:
 	string name;
 	vector<visualElement*> elements;
@@ -445,10 +427,10 @@ public:
 	vector<visualElement*> postElements;
 	vector<displayBar*> bars;
 	vector<option*> options;
-	//Default Constructor:
+	// Default Constructor:
 	window() {
 	}
-	//Parameterized Constructor:
+	// Parameterized Constructor:
 	window(string name, vector<visualElement*> elements) {
 		this->name = name;
 		this->elements = elements;
@@ -661,9 +643,8 @@ vector<visualElement*> blankElements = {};
 window blankW = window("blankP", blankElements);
 vector<window*> windows = { &mainW, &playlistW, &settingsW, &playerInputW, &playlistCreatorW, &playW };
 
-
 class page {
-	//Access specifier:
+	// Access specifier:
 public:
 	string x;
 	string y;
@@ -689,14 +670,13 @@ int* pIndex = &playersBar.displayIndex;
 string playerInput;
 string groupInput;
 
-
 // Group5 ------------------------------------------------------------ Group5
 // Classes and Variables for game controlling
 
 void activatewindow(window* p);
 
 class gameController {
-	//Access specifier:
+	// Access specifier:
 	string str_activePlayers;
 public:
 	int performersPerTurn = 1;
@@ -706,10 +686,10 @@ public:
 	int turnIndex = 0;
 	vector<player> performingPlayers;
 
-	//Default constructor:
+	// Default constructor:
 	gameController() {
 	}
-	//Parameterized constructor:
+	// Parameterized constructor:
 	gameController(int performersPerTurn, bool turnRandom, bool tallyVoting, bool detailsPrompt) {
 		this->performersPerTurn = performersPerTurn;
 		this->turnRandom = turnRandom;
@@ -1096,19 +1076,20 @@ void functionSetName() {
 	cin >> tempSetName;
 	cache1.playlists[cache1.playlists.size() - 1].name = tempSetName;
 	reprintwindow();
-
 }
 void functionAddDare() {
 	string tempAddDare;
 	cout << inputPos << "Enter dare: ";
-	cin >> tempAddDare;
+	cin.ignore();
+	getline(cin, tempAddDare);
 	cache1.playlists[cache1.playlists.size() - 1].dares.push_back(tempAddDare);
 	reprintwindow();
 }
 void functionAddTruth() {
 	string tempTruth;
 	cout << inputPos << "Enter Truth: ";
-	cin >> tempTruth;
+	cin.ignore();
+	getline(cin, tempTruth);
 	cache1.playlists[cache1.playlists.size() - 1].truths.push_back(tempTruth);
 	reprintwindow();
 }
@@ -1137,8 +1118,7 @@ void functionPerformersPerTurn() {
 	reprintwindow();
 }
 
-
-// SideBar update
+// For original Scoreboard function.
 vector<vector<string>> updatePlayers() {
 	vector<string> tempColumn1;
 	vector<string> tempColumn2;
